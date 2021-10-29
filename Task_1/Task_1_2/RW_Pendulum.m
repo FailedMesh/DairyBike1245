@@ -100,10 +100,12 @@ function dy = RW_pendulum_dynamics(y, m1, m2, l1, wr, g, u)
   ##u=2*u
   I1 =(m1*(l1^2))/3 + m2*((wr^2)/2 + l1^2);
   I2 = m2*(wr^2)/2;
+  I_theta = I1 - I2;
+  I_alpha = I2*(1 - (I2/I1));
   dy(1,1) = y(2);
-  dy(2,1) = (g*l1*sin(y(1))/I1)*(m1 + m2/2) + (u/I1);
+  dy(2,1) = (g*l1*(m2 + (m1/2))*sin(y(1)) - u)/I_theta;
   dy(3,1) = y(4);
-  dy(4,1) = -(m1*(l1^2)/(3*I2))*dy(2,1) + (u/I1);
+  dy(4,1) = (u - (I2/I1)*g*l1*(m2 + (m1/2))*sin(y(1)))/I_alpha;
 endfunction
 
 ## Function : sim_RW_pendulum()
@@ -195,8 +197,8 @@ endfunction
 ##          calculated using LQR Controller.
 function [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0)
   [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g)
-  Q = eye(4)*10;
-  R = 5;
+  Q = eye(4)*0.5;
+  R = 0.5;
   K = lqr(A, B, Q, R);
   tspan = 0:0.1:10; # Time Array 
   [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, -K*(y-y_setpoint)), tspan, y0);  # ODE solver to solve differential equations
@@ -219,8 +221,8 @@ function RW_pendulum_main()
 ## Function Calls for different control techniques for stabilizing RW Pendulum
   
   [t,y] = sim_RW_pendulum(m1, m2, l1, wr, g, y0);
-  [t,y] = pole_place_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
-##  [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
+##  [t,y] = pole_place_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
+  [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
   disp(y);
   for k = 1:length(t)
     draw_RW_pendulum(y(k, :), m1, m2, l1, wr);  # Function to draw current state of RW Pendulum
