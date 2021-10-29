@@ -1,6 +1,7 @@
 1;
 pkg load control;
 pkg load image;
+warning('off','all');
 
 
 ##**************************************************************************
@@ -11,7 +12,7 @@ pkg load image;
 ##*  Theme: Dairy Bike
 ##*  Filename: RW_Pendulum.m
 ##*  Version: 2.0.0  
-##*  Date: October 13, 2021
+##*  Date: October 27, 2021
 ##*
 ##*  Team ID :
 ##*  Team Leader Name:
@@ -27,7 +28,7 @@ pkg load image;
 ##*        http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode 
 ##*     
 ##*
-##*  This software is made available on an “AS IS WHERE IS BASIS”. 
+##*  This software is made available on an ï¿½AS IS WHERE IS BASISï¿½. 
 ##*  Licensee/end user indemnifies and will keep e-Yantra indemnified from
 ##*  any and all claim(s) that emanate from the use of the Software or 
 ##*  breach of the terms of this agreement.
@@ -37,24 +38,22 @@ pkg load image;
 ##*
 ##**************************************************************************
 
-
 ## Function : draw_RW_pendulum()
 ## ----------------------------------------------------
 ## Input:   y - State Vector. In case of inverted RW pendulum, the state variables
-##              are angular position of RW theta, angular velocity of RW theta_dot, angle of pendulum
-##              bar alpha wrt vertical and angular velocity alpha_dot of pendulum
+##              are angular position of RW alpha, angular velocity of RW alpha_dot, angle of pendulum
+##              bar theta wrt vertical and angular velocity theta_dot of pendulum
 ##              bar.
 ##
 ## Purpose: Takes the state vector as input. It draws the inverted RW pendulum in 
 ##          a 2D plot.
-function draw_RW_pendulum(y,m1, m2, l1)
+function draw_RW_pendulum(y,m1, m2, l1, wr)
   theta = y(1); # angle of Pendulum Bar
   alpha = y(3); # angle of Reaction wheel
-  wr=1;           # wheel radius
   x=0;
   y=0;
   px = l1*sin(theta);
-  py = l1*cos(theta);
+  py = -l1*cos(theta);
   w1x = px-wr/2;
   w1y = py-wr/2;
   hold on;
@@ -66,7 +65,7 @@ function draw_RW_pendulum(y,m1, m2, l1)
   center = [px py];
   rotation = alpha;
   rotTForm = [cos(rotation) sin(rotation); -sin(rotation) cos(rotation)];
-  #viscircles(center,radius,'Color','b');
+  #viscircles(center,radius=,'Color','b');
   
   hold on
   centerLines = center + [0 radius; 0 0; radius 0];
@@ -84,9 +83,9 @@ endfunction
 ## Function : RW_pendulum_dynamics()
 ## ----------------------------------------------------
 ## Input:   y - State Vector. In case of inverted RW pendulum, the state variables
-##              are angle made by RW, angular velocity of RW theta_dot, angle of pendulum
-##              bar alpha wrt vertical and angular velocity alpha_dot of pendulum
-##              bob.
+##              are angular position of RW alpha, angular velocity of RW alpha_dot, angle of pendulum
+##              bar theta wrt vertical and angular velocity theta_dot of pendulum
+##              bar.
 ##          m1 - Mass of pendulum bar
 ##          m2 - Mass of reaction wheel
 ##          l1 - Length of pendulum bar
@@ -97,13 +96,14 @@ endfunction
 ##
 ## Purpose: Calculates the value of the vector dy according to the equations which 
 ##          govern this system.
-function dy = RW_pendulum_dynamics(y, m1, m2, l1, g,  u)
-  
-  
-  dy(1,1) = ;
-  dy(2,1) = ;
-  dy(3,1) = ;
-  dy(4,1) = ;
+function dy = RW_pendulum_dynamics(y, m1, m2, l1, wr, g, u)
+  ##u=2*u
+  I1 =(m1*(l1^2))/3 + m2*((wr^2)/2 + l1^2);
+  I2 = m2*(wr^2)/2;
+  dy(1,1) = y(2);
+  dy(2,1) = (g*l1*sin(y(1))/I1)*(m1 + m2/2) + (u/I1);
+  dy(3,1) = y(4);
+  dy(4,1) = -(m1*(l1^2)/(3*I2))*dy(2,1) + (u/I1);
 endfunction
 
 ## Function : sim_RW_pendulum()
@@ -121,10 +121,10 @@ endfunction
 ##          any external input (u).
 ##          This integrates the system of differential equation from t0 = 0 to 
 ##          tf = 10 with initial condition y0
-function [t,y] = sim_RW_pendulum(m1, m2, l1, g, y0)
+function [t,y] = sim_RW_pendulum(m1, m2, l1, wr, g, y0)
   tspan = 0:0.1:10;                  ## Initialise time step           
   u = 0;                             ## No Input
-  [t,y] = ; ## Solving the differential equation    
+  [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, u), tspan, y0); ## Solving the differential equation    
 endfunction
 
 ## Function : RW_pendulum_AB_matrix()
@@ -138,9 +138,17 @@ endfunction
 ##          B - B matrix of system
 ##          
 ## Purpose: Declare the A and B matrices in this function.
-function [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, g)
-  A = ;
-  B = ;
+function [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g)
+  I1= (m1*(l1^2))/3 + m2*((wr^2)/2 + l1^2);  # Moment of Inertia of pendulum bar
+  I2= m2*(wr^2)/2; # Moment of Inertia of reaction wheel
+  syms y1 y2 y3 y4 u;
+  y = [y1 y2 y3 y4];
+  dy = RW_pendulum_dynamics(y, m1, m2, wr, l1, g, u)
+  Ax = jacobian(dy, y);
+  Bx = jacobian(dy, u);
+  ys = [pi; 0; 2*pi; 0];
+  A = double(subs(Ax, {y1 y2 y3 y4}, ys));
+  B = double(subs(Bx, {y1 y2 y3 y4}, ys));  
 endfunction
 
 ## Function : pole_place_RW_pendulum()
@@ -160,10 +168,12 @@ endfunction
 ##          This integrates the system of differential equation from t0 = 0 to 
 ##          tf = 10 with initial condition y0 and input u = -Kx where K is
 ##          calculated using Pole Placement Technique.
-function [t,y] = pole_place_RW_pendulum(m1, m2, l1, g, y_setpoint, y0)
-
-  tspan = 0:0.1:10;                  ## Initialise time step    
-  [t,y] = ; ## Solving the differential equation  
+function [t,y] = pole_place_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0)
+  [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g)
+  eigs = [-2; -2; -2; -2];
+  K = place(A, B, eigs);
+  tspan = 0:0.1:10;
+  [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, -K*(y-y_setpoint)), tspan, y0);
 endfunction
 
 ## Function : lqr_RW_pendulum()
@@ -183,10 +193,13 @@ endfunction
 ##          This integrates the system of differential equation from t0 = 0 to 
 ##          tf = 10 with initial condition y0 and input u = -Kx where K is
 ##          calculated using LQR Controller.
-function [t,y] = lqr_RW_pendulum(m1, m2, l1, g, y_setpoint, y0)
-
-  tspan = 0:0.1:10;                  ## Initialise time step    
-  [t,y] = ; ## Solving the differential equation  
+function [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0)
+  [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g)
+  Q = eye(4)*10;
+  R = 5;
+  K = lqr(A, B, Q, R);
+  tspan = 0:0.1:10; # Time Array 
+  [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, -K*(y-y_setpoint)), tspan, y0);  # ODE solver to solve differential equations
 endfunction
 
 ## Function : RW_pendulum_main()
@@ -195,18 +208,21 @@ endfunction
 ##          respective functions and observing the behavior of the system. Constant
 ##          parameters like mass of Reaction Wheel, mass of pendulum bar etc are declared here.
 function RW_pendulum_main()
-  m1 = 8;  # Mass of Pendulum Bar
-  m2= 0.08;      # Mass of Reaction Wheel 
+  m1 = 8;     # Mass of Pendulum Bar
+  m2= 0.08;   # Mass of Reaction Wheel 
   l1= 3;      # Length of Pendulum Bar
   g = 9.8;    # Centre of Gravity
-  y0 = [0.1; 0; 0; 0]; # Initial Conditions
-  y_setpoint = [0; 0; pi; 0];  # Reference Point
+  y0 = [0.9*pi; 0; 0; 0]; # Initial Conditions
+  y_setpoint = [pi; 0; 2*pi; 0];  # Reference Point
+  wr=1; #wheel radius
 
 ## Function Calls for different control techniques for stabilizing RW Pendulum
-  [t,y] = sim_RW_pendulum(m1, m2, l1, g, y0);
-##  [t,y] = pole_place_RW_pendulum(m1, m2, l1, g, y_setpoint, y0);
-##  [t,y] = lqr_RW_pendulum(m1, m2, l1, g, y_setpoint, y0);
+  
+  [t,y] = sim_RW_pendulum(m1, m2, l1, wr, g, y0);
+  [t,y] = pole_place_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
+##  [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
+  disp(y);
   for k = 1:length(t)
-    draw_RW_pendulum(y(k, :), m1, m2, l1);  # Function to draw current state of RW Pendulum
+    draw_RW_pendulum(y(k, :), m1, m2, l1, wr);  # Function to draw current state of RW Pendulum
   endfor
 endfunction
