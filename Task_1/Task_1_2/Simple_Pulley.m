@@ -85,10 +85,9 @@ endfunction
 ##                will be the velocity x_dot and acceleration x_dot_dot
 ## Purpose: Calculates the value of the vector dy according to the equations which 
 ##          govern this system.
-function dy = pulley_dynamics(y, m1, m2, g, r, u)
-  
-  dy(1,1) = ;
-  dy(2,1) = ;  
+function dy = pulley_dynamics(y, m1, m2, g, r, u) 
+  dy(1,1) = y(2);
+  dy(2,1) = (((m1-m2)*g) + (2*u/r))/(m1+m2);  
 endfunction
 
 ## Function : sim_pulley()
