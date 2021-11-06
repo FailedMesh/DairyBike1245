@@ -1,4 +1,3 @@
-1;
 pkg load control;
 
 
@@ -26,7 +25,7 @@ pkg load control;
 ##*        http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode 
 ##*     
 ##*
-##*  This software is made available on an “AS IS WHERE IS BASIS”. 
+##*  This software is made available on an ï¿½AS IS WHERE IS BASISï¿½. 
 ##*  Licensee/end user indemnifies and will keep e-Yantra indemnified from
 ##*  any and all claim(s) that emanate from the use of the Software or 
 ##*  breach of the terms of this agreement.
@@ -79,7 +78,7 @@ endfunction
 function dy = mass_spring_dynamics(y, m, k, u)
   
   dy(1,1) = y(2);
-  dy(2,1) = (-k/m)*y(1) - (1/m)*u;
+  dy(2,1) = ((-u/m) - (k*y(1)/m));
 endfunction
 
 ## Function : sim_mass_spring()
@@ -98,7 +97,7 @@ endfunction
 function [t,y] = sim_mass_spring(m, k, y0)
   tspan = 0:0.1:10;                ## Initialize time step
   u = 0;                           ## No input
-  [t,y] = ode45(@(t,y)mass_spring_dynamics(y, m, k, u), tspan, y0);
+  [t,y] = ode45(@(t,y)mass_spring_dynamics(y, m, k, u),tspan,y0);
 endfunction
 
 ## Function : mass_spring_AB_matrix()
@@ -111,7 +110,7 @@ endfunction
 ##          
 ## Purpose: Declare the A and B matrices in this function.
 function [A,B] = mass_spring_AB_matrix(m, k)
-  A = [0 1; (-k/m) 0];
+  A = [0 1;(-k/m) 0];
   B = [0; (-1/m)];
 endfunction
 
@@ -129,13 +128,15 @@ endfunction
 ##          external input using the pole_placement controller
 ##          This integrates the system of differential equation from t0 = 0 to 
 ##          tf = 10 with initial condition y0 and input u = -Kx where K is
-##          calculated using Pole Placement Technique.
+#          calculated using Pole Placement Technique.
 function [t,y] = pole_place_mass_spring(m, k, y_setpoint, y0)
   [A,B] = mass_spring_AB_matrix(m, k);  ## Initialize A and B matrix 
-  eigs = [-2, -1];                    ## Initialise desired eigenvalues
-  K = place(A, B, eigs);                ## Calculate K matrix for desired eigenvalues
+  #eigs = [-(sqrt(k/m)) (-sqrt(k/m))];                    ## Initialise desired eigenvalues
+  eigs = [-40, -3]
+  K = place(A, B, eigs) 
+  
   tspan = 0:0.1:10;                   ## Initialise time step 
-  [t,y] = ode45(@(t,y)mass_spring_dynamics(y, m, k, -K*(y - y_setpoint)), tspan, y0);
+  [t,y] = ode45(@(t,y)mass_spring_dynamics(y, m, k, -K*(y-y_setpoint)),tspan,y0)
 endfunction
 
 ## Function : lqr_mass_spring()
@@ -154,13 +155,13 @@ endfunction
 ##          tf = 10 with initial condition y0 and input u = -Kx where K is
 ##          calculated using LQR
 function [t,y] = lqr_mass_spring(m, k, y_setpoint, y0)
-  [A,B] = mass_spring_AB_matrix(m, k);  ## Initialize A and B matrix 
+ [A,B] = mass_spring_AB_matrix(m, k);  ## Initialize A and B matrix 
   
-  Q = eye(2);                  ## Initialise desired eigenvalues
-  R = 0.25;               ## Calculate K matrix for desired eigenvalues
-  K = lqr(A, B, Q, R);
+  Q = [6 0; 0 0.02];                  ## Initialise desired eigenvalues
+  R = 0.005;               ## Calculate K matrix for desired eigenvalues
+  K = lqr(A, B, Q, R)
   tspan = 0:0.1:10;                   ## Initialise time step 
-  [t,y] = ode45(@(t,y)mass_spring_dynamics(y, m, k, -K*(y - y_setpoint)), tspan, y0);
+  [t,y] = ode45(@(t,y)mass_spring_dynamics(y, m, k, -K*(y-y_setpoint)),tspan,y0);
 endfunction
 
 ## Function : mass_spring_main()
@@ -174,9 +175,9 @@ function mass_spring_main()
   y0 = [-0.3; 0];
   y_setpoint = [0.7; 0];
   
-  [t,y] = sim_mass_spring(m,k, y0);      ## Test mass spring system with no input
-##  [t,y] = pole_place_mass_spring(m, k, y_setpoint, y0); ## Test system with Pole Placement controller
-   [t,y] = lqr_mass_spring(m, k, y_setpoint, y0)  ## Test system with LQR controller
+#  [t,y] = sim_mass_spring(m,k, y0);      ## Test mass spring system with no input
+#  [t,y] = pole_place_mass_spring(m, k, y_setpoint, y0); ## Test system with Pole Placement controller
+  [t,y] = lqr_mass_spring(m, k, y_setpoint, y0)  ## Test system with LQR controller
   for k = 1:length(t)
     draw_mass_spring(y(k, :));  
   endfor
