@@ -12,7 +12,7 @@ pkg load control;
 ##*  Version: 2.0.0  
 ##*  Date: October 13, 2021
 ##*
-##*  Team ID :
+##*  Team ID : 1245
 ##*  Team Leader Name:
 ##*  Team Member Name
 ##*
@@ -26,7 +26,7 @@ pkg load control;
 ##*        http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode 
 ##*     
 ##*
-##*  This software is made available on an ?AS IS WHERE IS BASIS?. 
+##*  This software is made available on an �AS IS WHERE IS BASIS�. 
 ##*  Licensee/end user indemnifies and will keep e-Yantra indemnified from
 ##*  any and all claim(s) that emanate from the use of the Software or 
 ##*  breach of the terms of this agreement.
@@ -86,10 +86,8 @@ endfunction
 ## Purpose: Calculates the value of the vector dy according to the equations which 
 ##          govern this system.
 function dy = pulley_dynamics(y, m1, m2, g, r, u)
-  
   dy(1,1) = y(2);
-  dy(2,1) = ((u/r + ((m1-m2)*g))/(m1+m2));
-# dy(2,1) = ((u + ((m1-m2)*g))/(m1+m2));  
+  dy(2,1) = ((u/r + ((m1-m2)*g))/(m1+m2)); 
 endfunction
 
 ## Function : sim_pulley()
@@ -147,11 +145,11 @@ endfunction
 ##          calculated using Pole Placement Technique.
 function [t,y] = pole_place_pulley(m1, m2, g, r, y_setpoint, y0)
   
-  tspan = 0:0.1:10;                  ## Initialise time step 
-  [A, B] = pulley_AB_matrix(m1, m2, g, r);
-  eigs = [-13, -18];
-  K = place(A, B, eigs);  
-  [t,y] = ode45(@(t,y)pulley_dynamics(y, m1, m2, g, r, -K*(y-y_setpoint)),tspan,y0);  
+   tspan = 0:0.1:10;                  ## Initialise time step 
+   [A, B] = pulley_AB_matrix(m1, m2, g, r);
+   eigs = [-3, -3];
+   K = place(A, B, eigs);  
+   [t,y] = ode45(@(t,y)pulley_dynamics(y, m1, m2, g, r, -K*(y-y_setpoint)),tspan,y0);  
 endfunction
 
 ## Function : lqr_pulley()
@@ -173,10 +171,10 @@ endfunction
 ##          calculated using LQR
 function [t,y] = lqr_pulley(m1, m2, g, r, y_setpoint, y0)
   [A, B] = pulley_AB_matrix(m1, m2, g, r);
-  Q = [20 0; 0 20];
-  R = 1;
-  K = lqr(A, B, Q, R);  
-  tspan = 0:0.1:10; 
+   Q = [20 0; 0 20];
+   R = 0.005;
+   K = lqr(A, B, Q, R);  
+   tspan = 0:0.1:10; 
    [t,y] = ode45(@(t,y)pulley_dynamics(y, m1, m2, g, r, -K*(y-y_setpoint)),tspan,y0);
 endfunction
 
@@ -186,14 +184,14 @@ endfunction
 ##          respective functions. Constant parameters like masses m1 and m2, 
 ##          gravity g and radius of pulley are defined here.
 function simple_pulley_main()
-  m1 = 7.5;
-  m2 = 7.51;
+  m1 = 7.51;
+  m2 = 7.5;
   g = 9.8;
   r = 0.2;
-  y0 = [0.5 ; 0];                   ## Initial condtion
+  y0 = [0.5 ; 0];                      ## Initial condtion
   y_setpoint = [0.75; 0];              ## Set Point
   
-#  [t,y] = sim_pulley(m1, m2, g, r, y0);
+#  [t,y] = sim_pulley(m1, m2, g, r, y0)
 #  [t,y] = pole_place_pulley(m1, m2, g, r, y_setpoint, y0)
   [t,y] = lqr_pulley(m1, m2, g, r, y_setpoint, y0)
   
