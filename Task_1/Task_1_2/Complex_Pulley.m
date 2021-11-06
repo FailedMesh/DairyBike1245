@@ -12,7 +12,7 @@ pkg load control;
 ##*  Version: 2.0.0  
 ##*  Date: October 13, 2021
 ##*
-##*  Team ID :
+##*  Team ID : 1245
 ##*  Team Leader Name:
 ##*  Team Member Name
 ##*
@@ -111,20 +111,9 @@ endfunction
 ## Purpose: Calculates the value of the vector dy according to the equations which 
 ##          govern this system.
 function dy = complex_pulley_dynamics(y, m1, m2, m3, g, rA, rB, u)
-  
-#ash+tan  
-#  dy(1,1) = y(2);
-#  dy(2,1) = ((u(1)/rA) - ((m1+m2+m3)*g) + m1*(-(((u(2)/rB) - ((m3 - m2)*g))/(m3 + m2))) / (m2 - m3));
-#  dy(2,1) = ((-u(1)/rA) + ((m2-m3)*(((m2 + m3)*(-(((u(2)/rB) - ((m3 - m2)*g))/(m3 + m2))) / (m3 - m2))) + ((m3+m2-m1)*g)) / m1);
-#  dy(2,1) = ((-u(1)/rA) + ((m3-m2)*(((m2 + m3)*(-(((u(2)/rB) - ((m3 - m2)*g))/(m3 + m2))) / (m3 - m2))) + ((m3+m2-m1)*g)) / m1);
-#  dy(3,1) = y(4);
-#  dy(4,1) = (((u(2)/rB) - ((m3 - m2)*g))/(m3 + m2));
-#  dy(4,1) = (((m2 + m3)*dy(2,1)) / (m3 - m2));  
-#ash
   dy(1,1) = y(2);
   dy(2,1) = (((u(1)/rA) - ((-m1+m2+m3)*g)) / (m1+m2+m3));
   dy(3,1) = y(4);
-#  dy(4,1) = ((((m3-m2)*g) - (u(2)/rB)) / (m2-m3));  #considered a2 down
   dy(4,1) = (((u(2)/rB) - (m3-m2)*g) / (m2+m3));    #considered a2 up
 endfunction
 
@@ -240,8 +229,8 @@ function complex_pulley_main()
   y0 = [0.4 ; 0; 0.5; 0];
   
 #  [t,y] = sim_complex_pulley(m1, m2, m3, g, rA, rB, y0)
-  [t,y] = pole_place_complex_pulley(m1, m2, m3, g, rA, rB, y_setpoint, y0)
-#  [t,y] = lqr_complex_pulley(m1, m2, m3, g, rA, rB, y_setpoint, y0);
+#  [t,y] = pole_place_complex_pulley(m1, m2, m3, g, rA, rB, y_setpoint, y0)
+  [t,y] = lqr_complex_pulley(m1, m2, m3, g, rA, rB, y_setpoint, y0);
   
   for k = 1:length(t)
     draw_complex_pulley(y(k, :));
