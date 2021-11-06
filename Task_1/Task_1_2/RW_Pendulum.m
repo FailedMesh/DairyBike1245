@@ -124,7 +124,7 @@ endfunction
 ##          This integrates the system of differential equation from t0 = 0 to 
 ##          tf = 10 with initial condition y0
 function [t,y] = sim_RW_pendulum(m1, m2, l1, wr, g, y0)
-  tspan = 0:0.1:10;                  ## Initialise time step           
+  tspan = 0:0.1:20;                  ## Initialise time step           
   u = 0;                             ## No Input
   [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, u), tspan, y0); ## Solving the differential equation    
 endfunction
@@ -148,7 +148,7 @@ function [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g)
   dy = RW_pendulum_dynamics(y, m1, m2, wr, l1, g, u)
   Ax = jacobian(dy, y);
   Bx = jacobian(dy, u);
-  ys = [pi; 0; 2*pi; 0];
+  ys = [pi; 0; 0; 0];
   A = double(subs(Ax, {y1 y2 y3 y4}, ys));
   B = double(subs(Bx, {y1 y2 y3 y4}, ys));  
 endfunction
@@ -174,7 +174,7 @@ function [t,y] = pole_place_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0)
   [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g)
   eigs = [-2; -2; -2; -2];
   K = place(A, B, eigs);
-  tspan = 0:0.1:10;
+  tspan = 0:0.1:20;
   [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, -K*(y-y_setpoint)), tspan, y0);
 endfunction
 
@@ -197,10 +197,14 @@ endfunction
 ##          calculated using LQR Controller.
 function [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0)
   [A, B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g)
-  Q = eye(4)*0.5;
-  R = 0.5;
-  K = lqr(A, B, Q, R);
-  tspan = 0:0.1:10; # Time Array 
+  Q1 = 10000;
+  Q2 = 500;
+  Q3 = 0.01;
+  Q4 = 0.01;
+  Q = [Q1 0 0 0; 0 Q2 0 0; 0 0 Q3 0; 0 0 0 Q4];
+  R = 0.05;
+  K = lqr(A, B, Q, R)
+  tspan = 0:0.1:20; # Time Array 
   [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, -K*(y-y_setpoint)), tspan, y0);  # ODE solver to solve differential equations
 endfunction
 
@@ -215,15 +219,24 @@ function RW_pendulum_main()
   l1= 3;      # Length of Pendulum Bar
   g = 9.8;    # Centre of Gravity
   y0 = [0.9*pi; 0; 0; 0]; # Initial Conditions
-  y_setpoint = [pi; 0; 2*pi; 0];  # Reference Point
+  y_setpoint = [pi; 0; 0; 0];  # Reference Point
   wr=1; #wheel radius
 
 ## Function Calls for different control techniques for stabilizing RW Pendulum
   
-  [t,y] = sim_RW_pendulum(m1, m2, l1, wr, g, y0);
+##  [t,y] = sim_RW_pendulum(m1, m2, l1, wr, g, y0);
 ##  [t,y] = pole_place_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
   [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0);
-  disp(y);
+  err = y - y_setpoint';
+  size(err)
+  figure;
+  plot(t, err(:, 1:2));
+  legend("show");
+  figure;
+  plot(t, err(:, 3:4));
+  legend("show");
+  disp(y - y_setpoint');
+  figure;
   for k = 1:length(t)
     draw_RW_pendulum(y(k, :), m1, m2, l1, wr);  # Function to draw current state of RW Pendulum
   endfor
